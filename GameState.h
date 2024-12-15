@@ -2,6 +2,9 @@
 #define GAME_STATE_H
 
 #include <iostream>
+#include <type_traits>
+#include "ArrayList.h"
+#include "LinkedList.h"
 
 struct Vec{
     int x;
@@ -206,11 +209,155 @@ struct GameState{
 
     ~GameState(){
         for (int i = 0; i < size; i++){
-            delete[] grid[i];
+            delete [] grid[i];
         }
-        delete[] grid;
+        delete [] grid;
+    }
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+    int scoreFinder(GameState game){
+        if (game.hasWon(1)){
+            return 10;
+        }
+        if (game.hasWon(0)){
+            return -10;
+        }
+        return 0;
+    }
+    
+    int evaluate(GameState game, int depth, bool maximize){
+        int get_score = scoreFinder(game);
+        int limit_depth;
+        if (size == 3){
+            limit_depth = 9;
+        }
+        if (size == 4){
+            limit_depth = 4;
+        }
+        if (size == 5){
+            limit_depth = 2;
+        }
+
+        if (game.done || get_score != 0 || depth >= limit_depth){
+            return get_score - depth;
+        }
+        int highest_score;
+
+        if (maximize == true){ 
+            highest_score = -1000;
+            for (int i = 0; i < game.size; i++){
+                for (int j = 0; j < game.size; j++){
+                    if (game.grid[i][j] == -1){
+                        game.grid[i][j] = 1;
+                        int score = evaluate(game, depth + 1, false); 
+                        if (highest_score < score){
+                            highest_score = score;
+                        }
+                        game.grid[i][j] = -1;
+                    }
+                }
+            }
+            return highest_score;
+        }
+    
+
+        else{
+            highest_score = 1000;
+            for (int i = 0; i < game.size; i++){
+                for (int j = 0; j < game.size; j++){
+                    if (game.grid[i][j] == -1){
+                        game.grid[i][j] = 0;
+                        int score = evaluate(game, depth + 1, true);
+                        if (score < highest_score){
+                            highest_score = score;
+                        }
+                        game.grid[i][j] = -1;
+                    }
+                }
+            }
+            return highest_score;
+        }
+    }
+
+    Vec terrible_ai(int size){
+        Vec move;
+        while (true){
+            int ran_x = rand() % (size);
+            int ran_y = rand() % (size);
+            if (grid[ran_x][ran_y] == -1){
+                move.set(ran_x, ran_y);
+                break;
+            }
+        }
+        return Vec();
+    }
+
+    Vec average_ai(){
+        for (int i = 0; i < size; i++){
+            for (int j = 0; j < size; j++){
+                if (grid[i][j] == -1){
+                    grid[i][j] = 1;
+                    currentTurn = 0;
+                    turnCount++;
+                    lastMove.set(i, j);
+                    return lastMove;
+                }
+                
+            }
+        }
+        
+        return Vec();
+    }
+
+    Vec unbeatable_ai(GameState& game){
+        int bestScore = -1000;
+        Vec move;
+        for (int i = 0; i < game.size; i++){
+            for (int j = 0; j < game.size; j++){
+                if (game.grid[i][j] == -1){
+                    game.grid[i][j] = 0;
+                    if (game.hasWon(1)){
+                        move.set(i, j);
+                        game.grid[i][j] = -1;
+                        return move;
+                    }
+                    game.grid[i][j] = -1;
+                }
+            }
+        }
+
+        
+        for (int i = 0; i < game.size; i++){
+            for (int j = 0; j < game.size; j++){
+                if (game.grid[i][j] == -1){
+                        game.grid[i][j] = 1;
+                    if (game.hasWon(0)){
+                        move.set(i, j);
+                        game.grid[i][j] = -1;
+                        return move;
+                    }
+                    game.grid[i][j] = -1;
+                }
+            }
+        }
+        
+
+        for (int i = 0; i < game.size; i++){
+            for (int j = 0; j < game.size; j++){
+                if (game.grid[i][j] == -1){
+                    game.grid[i][j] = 0;
+                    int score = evaluate(game, 0, false);
+                    game.grid[i][j] = -1;
+                    if (score > bestScore){
+                        bestScore = score;
+                        move.set(i, j);
+                    }
+                }
+            }
+        }
+        return move;
     }
 };
+////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline std::ostream& operator<<(std::ostream& os, const GameState& state){
     os << "   ";
